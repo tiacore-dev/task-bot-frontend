@@ -27,22 +27,22 @@
             console.log("Используем API_URL:", window.env.API_URL);
             document.getElementById("auth-btn").addEventListener("click", async function () {
                 const tg = window.Telegram.WebApp;
-                const user = tg.initDataUnsafe;  // Отправляем все данные, а не только .user
+                const telegramData = tg.initDataUnsafe;  // Передаём ВСЁ
 
-                console.log("📌 Данные, отправленные на бек:", user);
+                console.log("📌 Данные, отправленные на бек:", telegramData);
 
-                if (!user) {
+                if (!telegramData) {
                     alert("Ошибка: Telegram Web App не передал данные.");
                     return;
                 }
 
-                const apiUrl = window.env.API_URL;  // Берём API_URL из env.js
+                const apiUrl = window.env.API_URL;
 
                 try {
                     const response = await fetch(`${apiUrl}/account/auth`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(user),  // Отправляем все данные
+                        body: JSON.stringify(telegramData),  // Теперь передаём ВСЁ
                     });
 
                     const data = await response.json();
@@ -59,7 +59,6 @@
                     alert("Ошибка сети при авторизации.");
                 }
             });
-
         });
     </script>
 </body>
