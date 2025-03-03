@@ -25,9 +25,11 @@
             tg.expand();  // Разворачиваем Mini App на весь экран
 
             console.log("Используем API_URL:", window.env.API_URL);
-
             document.getElementById("auth-btn").addEventListener("click", async function () {
-                const user = tg.initDataUnsafe.user;
+                const tg = window.Telegram.WebApp;
+                const user = tg.initDataUnsafe;  // Отправляем все данные, а не только .user
+
+                console.log("📌 Данные, отправленные на бек:", user);
 
                 if (!user) {
                     alert("Ошибка: Telegram Web App не передал данные.");
@@ -40,11 +42,11 @@
                     const response = await fetch(`${apiUrl}/account/auth`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(user),
+                        body: JSON.stringify(user),  // Отправляем все данные
                     });
 
                     const data = await response.json();
-                    console.log("Ответ сервера:", data);
+                    console.log("📌 Ответ сервера:", data);
 
                     if (response.ok) {
                         document.getElementById("user-info").innerHTML = `Привет, ${data.user.username || "пользователь"}!`;
@@ -57,6 +59,7 @@
                     alert("Ошибка сети при авторизации.");
                 }
             });
+
         });
     </script>
 </body>
