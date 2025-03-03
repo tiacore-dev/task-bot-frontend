@@ -39,6 +39,7 @@
                 const telegramData = tg.initDataUnsafe;  // Передаём ВСЁ
 
                 logDebug("📌 Данные, отправленные на бек:", telegramData);
+                logDebug("📌 Init Data:", Telegram.WebApp.initData);
 
                 if (!telegramData) {
                     alert("Ошибка: Telegram Web App не передал данные.");
