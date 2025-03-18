@@ -43,10 +43,9 @@
 
     <script>
         function logDebug(message) {
-            console.log(message);
-            document.getElementById("debug-log").innerText += `\n${message}`;
+            console.log(message);  // Лог в DevTools (если запущено в браузере)
+            document.getElementById("debug-log").innerText += `\n${message}`;  // Лог в Mini App
         }
-
         document.addEventListener("DOMContentLoaded", async function () {
             const tg = window.Telegram.WebApp;
             tg.expand();
