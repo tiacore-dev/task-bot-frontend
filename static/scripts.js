@@ -1,44 +1,50 @@
 document.addEventListener("DOMContentLoaded", async function () {
     const tg = window.Telegram.WebApp;
-    tg.expand();
+    tg.expand();  // Разворачиваем Mini App
+
     const apiUrl = window.env.API_URL;
-    async function loadTasks(category, elementId) {
-        const apiUrl = `${apiUrl}/api/tasks` + category;  // Укажи бэкенд
+    const telegramData = tg.initDataUnsafe.user;
 
-        const response = await fetch(apiUrl, {
-            headers: { "Authorization": "Bearer " + localStorage.getItem("jwt_token") }
-        });
+    if (!telegramData) {
+        alert("Ошибка: Telegram Web App не передал данные.");
+        return;
+    }
 
-        if (response.ok) {
-            const tasks = await response.json();
-            const list = document.getElementById(elementId);
-            list.innerHTML = "";
-            tasks.forEach(task => {
-                const li = document.createElement("li");
-                li.textContent = task.description;
-                list.appendChild(li);
+    document.getElementById("login-btn")?.addEventListener("click", async function () {
+        logDebug("🔹 Вход в систему...");
+
+        try {
+            const response = await fetch(`${apiUrl}/account/auth`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    telegram_id: telegramData.id,
+                    username: telegramData.username
+                }),
             });
-        } else {
-            console.error("Ошибка загрузки " + category);
-        }
-    }
 
-    if (window.location.pathname === "/tasks") {
-        loadTasks("available", "available-tasks");
-        loadTasks("active", "active-tasks");
-        loadTasks("completed", "completed-tasks");
-        loadTasks("history", "history-list");
-    }
+            const data = await response.json();
+            logDebug("📌 Ответ сервера:", JSON.stringify(data));
+
+            if (response.ok) {
+                document.getElementById("user-info").innerHTML = `Привет, ${data.username || "пользователь"}!`;
+                document.getElementById("tasks-btn").style.display = "block";
+            } else {
+                alert(data.detail || "Ошибка авторизации");
+            }
+        } catch (error) {
+            console.error("Ошибка сети:", error);
+            alert("Ошибка сети при авторизации.");
+        }
+    });
+
+    document.getElementById("tasks-btn")?.addEventListener("click", function () {
+        window.location.href = "/tasks.html"; // Перенаправляем на страницу с заданиями
+    });
 });
 
-function showTab(tabId) {
-    document.querySelectorAll(".tab-content").forEach(tab => {
-        tab.classList.remove("active");
-    });
-    document.querySelectorAll(".tab-btn").forEach(button => {
-        button.classList.remove("active");
-    });
-
-    document.getElementById(tabId).classList.add("active");
-    document.querySelector(`button[onclick="showTab('${tabId}')"]`).classList.add("active");
+// 📌 Логирование в debug-log
+function logDebug(message) {
+    console.log(message);
+    document.getElementById("debug-log")?.innerText += `\n${message}`;
 }
