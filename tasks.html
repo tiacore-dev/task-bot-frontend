@@ -56,35 +56,42 @@
             logDebug("📌 Telegram ID: " + telegramId);
 
             // 📌 Загружаем задания
-            async function loadTasks(endpoint, elementId, actionButton = false) {
+            async function loadTasks(category, elementId) {
+                logDebug(`📌 Загружаем ${category} задания...`);
+                console.log("🔍 API_URL:", window.env.API_URL);  // Проверяем API URL
+
+                if (!window.env || !window.env.API_URL) {
+                    logDebug("❌ API_URL не загружен. Проверь env.js!");
+                    return;
+                }
+
+                const apiUrl = window.env.API_URL;
+                const endpoint = `${apiUrl}/tasks/${category}`;
+                logDebug(`📌 Запрос: ${endpoint}`);
+
                 try {
-                    logDebug(`📌 Загружаем ${endpoint} задания...`);
-                    const response = await fetch(`${apiUrl}/tasks/${endpoint}?telegram_id=${telegramId}`);
-                    
-                    if (response.ok) {
-                        const tasks = await response.json();
-                        logDebug(`📌 Получено ${tasks.length} заданий в категории ${endpoint}`);
-                        
+                    const response = await fetch(endpoint);
+                    const text = await response.text();  // Читаем как текст
+                    logDebug(`📌 Ответ сервера (${category}): ${text}`);
+
+                    try {
+                        const tasks = JSON.parse(text); // Пробуем распарсить JSON
                         const taskList = document.getElementById(elementId);
                         taskList.innerHTML = "";
+
                         tasks.forEach(task => {
                             const li = document.createElement("li");
-                            li.innerHTML = `
-                                <b>${task.task_name}</b><br>
-                                ${task.description}<br>
-                                <b>💰 Награда:</b> ${task.reward} <br>
-                                ${actionButton ? `<button onclick="acceptTask('${task.task_id}')">✅ Взять</button>` : ""}
-                                ${endpoint === "my" ? `<button onclick="submitTask('${task.task_id}')">📤 Сдать</button>` : ""}
-                            `;
+                            li.innerHTML = `<b>${task.task_name}</b><br>${task.description}`;
                             taskList.appendChild(li);
                         });
-                    } else {
-                        logDebug(`❌ Ошибка загрузки ${endpoint}, код: ${response.status}`);
+                    } catch (jsonError) {
+                        logDebug(`❌ Ошибка парсинга JSON: ${jsonError}`);
                     }
                 } catch (error) {
-                    logDebug("❌ Ошибка сети: " + error);
+                    logDebug(`❌ Ошибка сети при загрузке ${category}: ${error}`);
                 }
             }
+
 
             // 📌 Берем задание в работу
             window.acceptTask = async function (taskId) {
