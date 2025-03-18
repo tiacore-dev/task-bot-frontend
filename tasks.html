@@ -36,42 +36,60 @@
             <h3>💰 История начислений</h3>
             <ul id="history-list"></ul>
         </div>
+
+        <p id="debug-log" style="font-size: 12px; color: gray; white-space: pre-wrap;"></p>
     </div>
 
     <script>
+        function logDebug(message) {
+            console.log(message);
+            document.getElementById("debug-log").innerText += `\n${message}`;
+        }
+
         document.addEventListener("DOMContentLoaded", async function () {
             const tg = window.Telegram.WebApp;
             tg.expand();
             const apiUrl = window.env.API_URL;
             const telegramId = tg.initDataUnsafe.user.id;
 
-            async function loadTasks(category, elementId) {
+            logDebug("📌 API URL: " + apiUrl);
+            logDebug("📌 Telegram ID: " + telegramId);
+
+            // 📌 Загружаем задания
+            async function loadTasks(endpoint, elementId, actionButton = false) {
                 try {
-                    const response = await fetch(`${apiUrl}/tasks/${category}?telegram_id=${telegramId}`);
+                    logDebug(`📌 Загружаем ${endpoint} задания...`);
+                    const response = await fetch(`${apiUrl}/tasks/${endpoint}?telegram_id=${telegramId}`);
+                    
                     if (response.ok) {
                         const tasks = await response.json();
+                        logDebug(`📌 Получено ${tasks.length} заданий в категории ${endpoint}`);
+                        
                         const taskList = document.getElementById(elementId);
                         taskList.innerHTML = "";
                         tasks.forEach(task => {
                             const li = document.createElement("li");
                             li.innerHTML = `
-                                <b>${task.title}</b><br>
+                                <b>${task.task_name}</b><br>
                                 ${task.description}<br>
-                                ${category === "available" ? `<button onclick="acceptTask('${task.task_id}')">✅ Взять</button>` : ""}
-                                ${category === "active" ? `<button onclick="submitTask('${task.task_id}')">📤 Сдать</button>` : ""}
+                                <b>💰 Награда:</b> ${task.reward} <br>
+                                ${actionButton ? `<button onclick="acceptTask('${task.task_id}')">✅ Взять</button>` : ""}
+                                ${endpoint === "my" ? `<button onclick="submitTask('${task.task_id}')">📤 Сдать</button>` : ""}
                             `;
                             taskList.appendChild(li);
                         });
                     } else {
-                        console.error(`Ошибка загрузки ${category}`);
+                        logDebug(`❌ Ошибка загрузки ${endpoint}, код: ${response.status}`);
                     }
                 } catch (error) {
-                    console.error("Ошибка сети:", error);
+                    logDebug("❌ Ошибка сети: " + error);
                 }
             }
 
+            // 📌 Берем задание в работу
             window.acceptTask = async function (taskId) {
                 try {
+                    logDebug(`📌 Принимаем задание ${taskId}`);
                     const response = await fetch(`${apiUrl}/tasks/${taskId}/accept`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -80,18 +98,22 @@
 
                     if (response.ok) {
                         alert("Задание принято!");
-                        loadTasks("available", "available-tasks");
-                        loadTasks("active", "active-tasks");
+                        logDebug("✅ Задание принято");
+                        loadTasks("", "available-tasks", true);
+                        loadTasks("my", "active-tasks");
                     } else {
                         alert("Ошибка при принятии задания");
+                        logDebug("❌ Ошибка принятия задания");
                     }
                 } catch (error) {
-                    console.error("Ошибка сети:", error);
+                    logDebug("❌ Ошибка сети при принятии задания: " + error);
                 }
             };
 
+            // 📌 Сдача задания на проверку
             window.submitTask = async function (taskId) {
                 try {
+                    logDebug(`📌 Отправляем задание ${taskId} на проверку`);
                     const response = await fetch(`${apiUrl}/tasks/${taskId}/submit`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -100,16 +122,19 @@
 
                     if (response.ok) {
                         alert("Задание отправлено на проверку!");
-                        loadTasks("active", "active-tasks");
+                        logDebug("✅ Задание отправлено на проверку");
+                        loadTasks("my", "active-tasks");
                         loadTasks("completed", "completed-tasks");
                     } else {
                         alert("Ошибка при сдаче задания");
+                        logDebug("❌ Ошибка при сдаче задания");
                     }
                 } catch (error) {
-                    console.error("Ошибка сети:", error);
+                    logDebug("❌ Ошибка сети при сдаче задания: " + error);
                 }
             };
 
+            // 📌 Переключение вкладок
             window.showTab = function (tabId) {
                 document.querySelectorAll(".tab-content").forEach(tab => {
                     tab.classList.remove("active");
@@ -120,12 +145,14 @@
 
                 document.getElementById(tabId).classList.add("active");
                 document.querySelector(`button[onclick="showTab('${tabId}')"]`).classList.add("active");
+                logDebug(`📌 Переключились на вкладку: ${tabId}`);
             };
 
-            loadTasks("available", "available-tasks");
-            loadTasks("active", "active-tasks");
-            loadTasks("completed", "completed-tasks");
-            loadTasks("history", "history-list");
+            // 📌 Загружаем задания
+            loadTasks("", "available-tasks", true);  // Все активные (доступные)
+            loadTasks("my", "active-tasks");  // Активные задания юзера
+            loadTasks("completed", "completed-tasks");  // Выполненные
+            loadTasks("history", "history-list");  // История начислений (пока не реализовано)
         });
     </script>
 
