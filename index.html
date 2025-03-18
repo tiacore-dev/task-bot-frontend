@@ -3,8 +3,14 @@
 {% block title %}Авторизация{% endblock %}
 
 {% block content %}
-    <p id="user-info">Авторизуемся...</p>
-    <button id="login-btn">🔑 Войти</button>  <!-- Кнопка входа -->
-    <button id="tasks-btn" style="display: none;">📌 Доступные задания</button>
-    <p id="debug-log" style="font-size: 12px; color: gray; white-space: pre-wrap;"></p>
+    <div class="container">
+        <h2>Добро пожаловать!</h2>
+        <p id="user-info">Авторизуйтесь через Telegram</p>
+        <button id="auth-btn">🔑 Войти</button>
+        <p id="debug-log" style="font-size: 12px; color: gray; white-space: pre-wrap;"></p>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="/static/auth.js"></script>  <!-- Подключаем JS -->
 {% endblock %}

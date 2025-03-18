@@ -3,18 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Mini App{% endblock %}</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="/static/scripts.js"></script> 
+    <title>{% block title %}Админка{% endblock %}</title>
     <link rel="stylesheet" href="/static/styles.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="/static/env.js"></script> <!-- API_URL -->
 </head>
 <body>
-    <header>
-        <h1>Telegram Mini App</h1>
-    </header>
+    <nav>
+        <a href="/">🏠 Главная</a>
+        <a href="/tasks">📌 Задания</a>
+    </nav>
 
     <main>
         {% block content %}{% endblock %}
     </main>
+
+    {% block scripts %}{% endblock %}
 </body>
 </html>
