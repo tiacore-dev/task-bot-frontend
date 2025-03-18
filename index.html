@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Telegram Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="./env.js"></script>  <!-- Загружаем API_URL -->
+    <script src="/static/env.js"></script> <!-- API_URL из переменных окружения -->
     <style>
         body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
         .container { max-width: 400px; margin: auto; }
@@ -15,60 +15,56 @@
 <body>
     <div class="container">
         <h2>Добро пожаловать!</h2>
-        <p id="user-info">Авторизуйтесь через Telegram</p>
-        <button id="auth-btn">Войти через Telegram</button>
+        <p id="user-info">Авторизуемся...</p>
+        <button id="tasks-btn" style="display: none;">📌 Доступные задания</button>
         <p id="debug-log" style="font-size: 12px; color: gray; white-space: pre-wrap;"></p>
-
     </div>
 
     <script>
         function logDebug(message) {
-            console.log(message);  // Лог в DevTools
-            document.getElementById("debug-log").innerText += `\n${message}`;  // Лог в Mini App
+            console.log(message);
+            document.getElementById("debug-log").innerText += `\n${message}`;
         }
-
-        logDebug("Mini App загружен, API_URL: " + window.env.API_URL);
 
         document.addEventListener("DOMContentLoaded", async function () {
             const tg = window.Telegram.WebApp;
-            tg.expand();  // Разворачиваем Mini App на весь экран
+            tg.expand(); // Разворачиваем Mini App
 
-            logDebug("Используем API_URL:", window.env.API_URL);
-            document.getElementById("auth-btn").addEventListener("click", async function () {
-                const tg = window.Telegram.WebApp;
-                const telegramData = tg.initDataUnsafe;  // Передаём ВСЁ
+            const apiUrl = window.env.API_URL;
+            const telegramData = tg.initDataUnsafe.user;
 
-                logDebug("📌 Данные, отправленные на бек:", telegramData);
-                logDebug("📌 Init Data:", Telegram.WebApp.initData);
+            if (!telegramData) {
+                alert("Ошибка: Telegram Web App не передал данные.");
+                return;
+            }
 
-                if (!telegramData) {
-                    alert("Ошибка: Telegram Web App не передал данные.");
-                    return;
+            logDebug("📌 Отправляю данные пользователя на сервер:", telegramData);
+
+            // Отправляем Telegram ID на сервер
+            try {
+                const response = await fetch(`${apiUrl}/account/auth`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ telegram_id: telegramData.id, username: telegramData.username }),
+                });
+
+                const data = await response.json();
+                logDebug("📌 Ответ сервера:", data);
+
+                if (response.ok) {
+                    document.getElementById("user-info").innerHTML = `Привет, ${data.username || "пользователь"}!`;
+                    document.getElementById("tasks-btn").style.display = "block";
+                } else {
+                    alert(data.detail || "Ошибка авторизации");
                 }
+            } catch (error) {
+                console.error("Ошибка сети:", error);
+                alert("Ошибка сети при авторизации.");
+            }
+        });
 
-                const apiUrl = window.env.API_URL;
-
-                try {
-                    const response = await fetch(`${apiUrl}/account/auth`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(telegramData),  // Теперь передаём ВСЁ
-                    });
-
-                    const data = await response.json();
-                    logDebug("📌 Ответ сервера:", data);
-
-                    if (response.ok) {
-                        document.getElementById("user-info").innerHTML = `Привет, ${data.user.username || "пользователь"}!`;
-                        localStorage.setItem("jwt_token", data.token);
-                    } else {
-                        alert(data.detail || "Ошибка авторизации");
-                    }
-                } catch (error) {
-                    console.error("Ошибка сети:", error);
-                    alert("Ошибка сети при авторизации.");
-                }
-            });
+        document.getElementById("tasks-btn").addEventListener("click", function () {
+            window.location.href = "/tasks.html"; // Перенаправляем на страницу с заданиями
         });
     </script>
 </body>

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Мои задания{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <h2>Задания</h2>
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('available')">📌 Доступные</button>
+            <button class="tab-btn" onclick="showTab('active')">🚀 Активные</button>
+            <button class="tab-btn" onclick="showTab('completed')">✅ Выполненные</button>
+            <button class="tab-btn" onclick="showTab('history')">💰 История начислений</button>
+        </div>
+
+        <div id="available" class="tab-content active">
+            <h3>📌 Доступные задания</h3>
+            <ul id="available-tasks"></ul>
+        </div>
+
+        <div id="active" class="tab-content">
+            <h3>🚀 Активные задания</h3>
+            <ul id="active-tasks"></ul>
+        </div>
+
+        <div id="completed" class="tab-content">
+            <h3>✅ Выполненные задания</h3>
+            <ul id="completed-tasks"></ul>
+        </div>
+
+        <div id="history" class="tab-content">
+            <h3>💰 История начислений</h3>
+            <ul id="history-list"></ul>
+        </div>
+    </div>
+
+    <script src="/static/tasks.js"></script>
+{% endblock %}
