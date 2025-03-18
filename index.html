@@ -1,16 +1,18 @@
-{% extends "base.html" %}
-
-{% block title %}Авторизация{% endblock %}
-
-{% block content %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Авторизация</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="/static/auth.js"></script>
+</head>
+<body>
     <div class="container">
         <h2>Добро пожаловать!</h2>
-        <p id="user-info">Авторизуйтесь через Telegram</p>
+        <p>Авторизуйтесь через Telegram</p>
         <button id="auth-btn">🔑 Войти</button>
-        <p id="debug-log" style="font-size: 12px; color: gray; white-space: pre-wrap;"></p>
     </div>
-{% endblock %}
-
-{% block scripts %}
-    <script src="/static/auth.js"></script>  <!-- Подключаем JS -->
-{% endblock %}
+</body>
+</html>
