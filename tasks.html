@@ -58,8 +58,7 @@
             // 📌 Загружаем задания
             async function loadTasks(category, elementId) {
                 logDebug(`📌 Загружаем ${category} задания...`);
-                console.log("🔍 API_URL:", window.env.API_URL);  // Проверяем API URL
-
+                
                 if (!window.env || !window.env.API_URL) {
                     logDebug("❌ API_URL не загружен. Проверь env.js!");
                     return;
@@ -67,6 +66,7 @@
 
                 const apiUrl = window.env.API_URL;
                 const endpoint = `${apiUrl}/tasks/${category}`;
+                
                 logDebug(`📌 Запрос: ${endpoint}`);
 
                 try {
@@ -74,8 +74,15 @@
                     const text = await response.text();  // Читаем как текст
                     logDebug(`📌 Ответ сервера (${category}): ${text}`);
 
+                    if (!response.ok) {
+                        logDebug(`❌ Сервер вернул ошибку: ${response.status} ${response.statusText}`);
+                        return;
+                    }
+
                     try {
                         const tasks = JSON.parse(text); // Пробуем распарсить JSON
+                        logDebug(`✅ Получены задания: ${JSON.stringify(tasks)}`);
+                        
                         const taskList = document.getElementById(elementId);
                         taskList.innerHTML = "";
 
@@ -84,6 +91,7 @@
                             li.innerHTML = `<b>${task.task_name}</b><br>${task.description}`;
                             taskList.appendChild(li);
                         });
+
                     } catch (jsonError) {
                         logDebug(`❌ Ошибка парсинга JSON: ${jsonError}`);
                     }
@@ -91,6 +99,7 @@
                     logDebug(`❌ Ошибка сети при загрузке ${category}: ${error}`);
                 }
             }
+
 
 
             // 📌 Берем задание в работу
