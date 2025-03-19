@@ -64,38 +64,41 @@
                     return;
                 }
 
-                const taskEndpoints = {
-                    "available": "/tasks/",
-                    "my": "/tasks/my",
-                    "completed": "/tasks/completed",
-                    "history": "/tasks/history"  // 🔥 Убедись, что такой API реально существует
-                };
+                const apiUrl = window.env.API_URL;
+                const endpoint = `${apiUrl}/tasks/${category}`;
 
-                const endpoint = `${apiUrl}${taskEndpoints[category]}`;
                 logDebug(`📌 Запрос: ${endpoint}`);
-
+                
                 try {
+                    // 🔥 Логируем заголовки перед запросом
+                    const headers = {
+                        "Content-Type": "application/json",
+                        "Accept": "application/json"
+                    };
+
+                    logDebug(`📌 Заголовки запроса: ${JSON.stringify(headers)}`);
+
                     const response = await fetch(endpoint, {
                         method: "GET",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "Accept": "application/json",
-                        }
+                        headers: headers,
+                        mode: "cors"
                     });
 
+                    // 🔥 Логируем статус ответа
                     logDebug(`📌 Статус ответа (${category}): ${response.status} ${response.statusText}`);
 
+                    const text = await response.text(); // Читаем как текст
+                    logDebug(`📌 Ответ сервера (${category}): ${text}`);
+
                     if (!response.ok) {
-                        logDebug(`❌ Сервер вернул ошибку: ${response.status} ${response.statusText}`);
+                        logDebug(`❌ Ошибка: ${response.status} ${response.statusText}`);
                         return;
                     }
 
-                    const text = await response.text(); // Читаем как текст для логов
-                    logDebug(`📌 Ответ сервера (${category}): ${text}`);
-
+                    // Пробуем распарсить JSON
                     try {
-                        const tasks = JSON.parse(text); // Парсим JSON
-                        logDebug(`✅ Получены задания (${category}): ${JSON.stringify(tasks)}`);
+                        const tasks = JSON.parse(text);
+                        logDebug(`✅ Получены задания: ${JSON.stringify(tasks)}`);
 
                         const taskList = document.getElementById(elementId);
                         taskList.innerHTML = "";
@@ -109,11 +112,11 @@
                     } catch (jsonError) {
                         logDebug(`❌ Ошибка парсинга JSON: ${jsonError}`);
                     }
-
                 } catch (error) {
                     logDebug(`❌ Ошибка сети при загрузке ${category}: ${error}`);
                 }
             }
+
 
 
 
