@@ -64,7 +64,14 @@
                     return;
                 }
 
-                const endpoint = `${window.env.API_URL}/tasks/${category}`;
+                const taskEndpoints = {
+                    "available": "/tasks/",
+                    "my": "/tasks/my",
+                    "completed": "/tasks/completed",
+                    "history": "/tasks/history"  // 🔥 Убедись, что такой API реально существует
+                };
+
+                const endpoint = `${apiUrl}${taskEndpoints[category]}`;
                 logDebug(`📌 Запрос: ${endpoint}`);
 
                 try {
