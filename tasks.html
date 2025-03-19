@@ -78,11 +78,13 @@
 
                     logDebug(`📌 Заголовки запроса: ${JSON.stringify(headers)}`);
 
-                    const response = await fetch(endpoint, {
-                        method: "GET",
-                        headers: headers,
-                        mode: "cors"
-                    });
+                    const response = await fetch(endpoint, { headers })
+                    .then(response => {
+                        console.log("📌 Redirected URL:", response.url);
+                        return response.text();
+                    })
+                    .then(console.log)
+                    .catch(console.error);
 
                     // 🔥 Логируем статус ответа
                     logDebug(`📌 Статус ответа (${category}): ${response.status} ${response.statusText}`);
@@ -134,7 +136,7 @@
                     if (response.ok) {
                         alert("Задание принято!");
                         logDebug("✅ Задание принято");
-                        loadTasks("", "available-tasks", true);
+                        loadTasks("", "available-tasks");
                         loadTasks("my", "active-tasks");
                     } else {
                         alert("Ошибка при принятии задания");
