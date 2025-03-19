@@ -58,31 +58,38 @@
             // 📌 Загружаем задания
             async function loadTasks(category, elementId) {
                 logDebug(`📌 Загружаем ${category} задания...`);
-                
+
                 if (!window.env || !window.env.API_URL) {
                     logDebug("❌ API_URL не загружен. Проверь env.js!");
                     return;
                 }
 
-                const apiUrl = window.env.API_URL;
-                const endpoint = `${apiUrl}/tasks/${category}`;
-                
+                const endpoint = `${window.env.API_URL}/tasks/${category}`;
                 logDebug(`📌 Запрос: ${endpoint}`);
 
                 try {
-                    const response = await fetch(endpoint);
-                    const text = await response.text();  // Читаем как текст
-                    logDebug(`📌 Ответ сервера (${category}): ${text}`);
+                    const response = await fetch(endpoint, {
+                        method: "GET",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Accept": "application/json",
+                        }
+                    });
+
+                    logDebug(`📌 Статус ответа (${category}): ${response.status} ${response.statusText}`);
 
                     if (!response.ok) {
                         logDebug(`❌ Сервер вернул ошибку: ${response.status} ${response.statusText}`);
                         return;
                     }
 
+                    const text = await response.text(); // Читаем как текст для логов
+                    logDebug(`📌 Ответ сервера (${category}): ${text}`);
+
                     try {
-                        const tasks = JSON.parse(text); // Пробуем распарсить JSON
-                        logDebug(`✅ Получены задания: ${JSON.stringify(tasks)}`);
-                        
+                        const tasks = JSON.parse(text); // Парсим JSON
+                        logDebug(`✅ Получены задания (${category}): ${JSON.stringify(tasks)}`);
+
                         const taskList = document.getElementById(elementId);
                         taskList.innerHTML = "";
 
@@ -95,10 +102,12 @@
                     } catch (jsonError) {
                         logDebug(`❌ Ошибка парсинга JSON: ${jsonError}`);
                     }
+
                 } catch (error) {
                     logDebug(`❌ Ошибка сети при загрузке ${category}: ${error}`);
                 }
             }
+
 
 
 
