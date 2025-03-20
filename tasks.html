@@ -166,10 +166,13 @@
             loadTasks("my", "active-tasks");
             loadTasks("completed", "completed-tasks");
             loadTasks("history", "history-list");
+            
+            window.viewTask = function (taskId) {
+                window.location.href = `./task_details.html?task_id=${taskId}`;
+            };
         });
-        window.viewTask = function (taskId) {
-            window.location.href = `/task_details.html?task_id=${taskId}`;
-        };
+
+        
     </script>
 
 </body>
