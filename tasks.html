@@ -68,7 +68,10 @@
                 const endpoint = `${apiUrl}/tasks/${category}`;
 
                 try {
-                    const headers = { "Content-Type": "application/json", "Accept": "application/json", "ngrok-skip-browser-warning": "true"  };
+                    const headers = {
+                            "Accept": "application/json",
+                            "ngrok-skip-browser-warning": "true"  // Убираем ngrok-баннер
+                        };
                     logDebug(`📌 Запрос: ${endpoint}`);
                     logDebug(`📌 Заголовки запроса: ${JSON.stringify(headers)}`);
 
