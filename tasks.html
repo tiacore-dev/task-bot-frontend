@@ -68,7 +68,7 @@
                 const endpoint = `${apiUrl}/tasks/${category}`;
 
                 try {
-                    const headers = { "Content-Type": "application/json", "Accept": "application/json" };
+                    const headers = { "Content-Type": "application/json", "Accept": "application/json", "ngrok-skip-browser-warning": "true"  };
                     logDebug(`📌 Запрос: ${endpoint}`);
                     logDebug(`📌 Заголовки запроса: ${JSON.stringify(headers)}`);
 
@@ -172,8 +172,8 @@
             // 📌 Загружаем задания
             loadTasks("", "available-tasks");
             loadTasks("my", "active-tasks");
-            loadTasks("completed", "completed-tasks");
-            loadTasks("history", "history-list");
+            //loadTasks("completed", "completed-tasks");
+            //loadTasks("history", "history-list");
         });
     </script>
 
