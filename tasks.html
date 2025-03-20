@@ -119,10 +119,9 @@
             window.acceptTask = async function (taskId) {
                 try {
                     logDebug(`📌 Принимаем задание ${taskId}`);
-                    const response = await fetch(`${apiUrl}/tasks/${taskId}/accept`, {
+                    const response = await fetch(`${apiUrl}/tasks/${taskId}/accept?telegram_id=${telegramId}`, {
                         method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ telegram_id: telegramId }),
+                        headers: { "Content-Type": "application/json" }
                     });
 
                     const text = await response.text();
@@ -166,7 +165,7 @@
             loadTasks("my", "active-tasks");
             loadTasks("completed", "completed-tasks");
             loadTasks("history", "history-list");
-            
+
             window.viewTask = function (taskId) {
                 window.location.href = `./task_details.html?task_id=${taskId}`;
             };
