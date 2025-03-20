@@ -6,7 +6,7 @@
     <title>Задания</title>
     <link rel="stylesheet" href="/static/styles.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="./env.js"></script>  <!-- Загружаем API_URL -->
+    <script src="/static/env.js"></script> <!-- Загружаем API_URL -->
 </head>
 <body>
     <div class="container">
@@ -46,84 +46,62 @@
             console.log(message);  // Лог в DevTools (если запущено в браузере)
             document.getElementById("debug-log").innerText += `\n${message}`;  // Лог в Mini App
         }
+
         document.addEventListener("DOMContentLoaded", async function () {
             const tg = window.Telegram.WebApp;
             tg.expand();
-            const apiUrl = window.env.API_URL;
-            const telegramId = tg.initDataUnsafe.user.id;
 
+            if (!window.env || !window.env.API_URL) {
+                logDebug("❌ API_URL не загружен. Проверь env.js!");
+                return;
+            }
+
+            const apiUrl = window.env.API_URL;
             logDebug("📌 API URL: " + apiUrl);
+
+            const telegramId = tg.initDataUnsafe?.user?.id || "UNKNOWN";
             logDebug("📌 Telegram ID: " + telegramId);
 
-            // 📌 Загружаем задания
+            // 📌 Функция загрузки заданий
             async function loadTasks(category, elementId) {
                 logDebug(`📌 Загружаем ${category} задания...`);
-
-                if (!window.env || !window.env.API_URL) {
-                    logDebug("❌ API_URL не загружен. Проверь env.js!");
-                    return;
-                }
-
-                const apiUrl = window.env.API_URL;
                 const endpoint = `${apiUrl}/tasks/${category}`;
 
-                logDebug(`📌 Запрос: ${endpoint}`);
-                
                 try {
-                    // 🔥 Логируем заголовки перед запросом
-                    const headers = {
-                        "Content-Type": "application/json",
-                        "Accept": "application/json"
-                    };
-
+                    const headers = { "Content-Type": "application/json", "Accept": "application/json" };
+                    logDebug(`📌 Запрос: ${endpoint}`);
                     logDebug(`📌 Заголовки запроса: ${JSON.stringify(headers)}`);
 
-                    const response = await fetch(endpoint, { headers })
-                    .then(response => {
-                        console.log("📌 Redirected URL:", response.url);
-                        return response.text();
-                    })
-                    .then(console.log)
-                    .catch(console.error);
+                    const response = await fetch(endpoint, { headers });
 
-                    // 🔥 Логируем статус ответа
                     logDebug(`📌 Статус ответа (${category}): ${response.status} ${response.statusText}`);
 
-                    const text = await response.text(); // Читаем как текст
+                    const text = await response.text();
                     logDebug(`📌 Ответ сервера (${category}): ${text}`);
 
                     if (!response.ok) {
-                        logDebug(`❌ Ошибка: ${response.status} ${response.statusText}`);
+                        logDebug(`❌ Ошибка запроса: ${response.status} ${response.statusText}`);
                         return;
                     }
 
-                    // Пробуем распарсить JSON
-                    try {
-                        const tasks = JSON.parse(text);
-                        logDebug(`✅ Получены задания: ${JSON.stringify(tasks)}`);
+                    const tasks = JSON.parse(text);
+                    logDebug(`✅ Получены задания: ${JSON.stringify(tasks)}`);
 
-                        const taskList = document.getElementById(elementId);
-                        taskList.innerHTML = "";
+                    const taskList = document.getElementById(elementId);
+                    taskList.innerHTML = "";
 
-                        tasks.forEach(task => {
-                            const li = document.createElement("li");
-                            li.innerHTML = `<b>${task.task_name}</b><br>${task.description}`;
-                            taskList.appendChild(li);
-                        });
+                    tasks.forEach(task => {
+                        const li = document.createElement("li");
+                        li.innerHTML = `<b>${task.task_name}</b><br>${task.description}`;
+                        taskList.appendChild(li);
+                    });
 
-                    } catch (jsonError) {
-                        logDebug(`❌ Ошибка парсинга JSON: ${jsonError}`);
-                    }
                 } catch (error) {
-                    logDebug(`❌ Ошибка сети при загрузке ${category}: ${error}`);
+                    logDebug(`❌ Ошибка загрузки ${category}: ${error}`);
                 }
             }
 
-
-
-
-
-            // 📌 Берем задание в работу
+            // 📌 Функция принятия задания
             window.acceptTask = async function (taskId) {
                 try {
                     logDebug(`📌 Принимаем задание ${taskId}`);
@@ -133,6 +111,9 @@
                         body: JSON.stringify({ telegram_id: telegramId }),
                     });
 
+                    const text = await response.text();
+                    logDebug(`📌 Ответ сервера (acceptTask): ${text}`);
+
                     if (response.ok) {
                         alert("Задание принято!");
                         logDebug("✅ Задание принято");
@@ -140,14 +121,14 @@
                         loadTasks("my", "active-tasks");
                     } else {
                         alert("Ошибка при принятии задания");
-                        logDebug("❌ Ошибка принятия задания");
+                        logDebug(`❌ Ошибка принятия задания: ${response.status} ${response.statusText}`);
                     }
                 } catch (error) {
-                    logDebug("❌ Ошибка сети при принятии задания: " + error);
+                    logDebug(`❌ Ошибка сети при принятии задания: ${error}`);
                 }
             };
 
-            // 📌 Сдача задания на проверку
+            // 📌 Функция сдачи задания
             window.submitTask = async function (taskId) {
                 try {
                     logDebug(`📌 Отправляем задание ${taskId} на проверку`);
@@ -157,6 +138,9 @@
                         body: JSON.stringify({ telegram_id: telegramId }),
                     });
 
+                    const text = await response.text();
+                    logDebug(`📌 Ответ сервера (submitTask): ${text}`);
+
                     if (response.ok) {
                         alert("Задание отправлено на проверку!");
                         logDebug("✅ Задание отправлено на проверку");
@@ -164,14 +148,14 @@
                         loadTasks("completed", "completed-tasks");
                     } else {
                         alert("Ошибка при сдаче задания");
-                        logDebug("❌ Ошибка при сдаче задания");
+                        logDebug(`❌ Ошибка при сдаче задания: ${response.status} ${response.statusText}`);
                     }
                 } catch (error) {
-                    logDebug("❌ Ошибка сети при сдаче задания: " + error);
+                    logDebug(`❌ Ошибка сети при сдаче задания: ${error}`);
                 }
             };
 
-            // 📌 Переключение вкладок
+            // 📌 Функция переключения вкладок
             window.showTab = function (tabId) {
                 document.querySelectorAll(".tab-content").forEach(tab => {
                     tab.classList.remove("active");
@@ -186,10 +170,10 @@
             };
 
             // 📌 Загружаем задания
-            loadTasks("", "available-tasks", true);  // Все активные (доступные)
-            loadTasks("my", "active-tasks");  // Активные задания юзера
-            loadTasks("completed", "completed-tasks");  // Выполненные
-            loadTasks("history", "history-list");  // История начислений (пока не реализовано)
+            loadTasks("", "available-tasks");
+            loadTasks("my", "active-tasks");
+            loadTasks("completed", "completed-tasks");
+            loadTasks("history", "history-list");
         });
     </script>
 
