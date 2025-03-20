@@ -100,15 +100,15 @@
                     taskList.innerHTML = "";
 
                     tasks.forEach(task => {
-                        const li = document.createElement("li");
-                        li.innerHTML = `
-                            <b>${task.description}</b> - 💰 ${task.reward}
-                            <br>
-                            <button onclick="acceptTask('${task.task_id}')">🚀 Принять</button>
-                            <button onclick="viewTask('${task.task_id}')">👀 Посмотреть</button>
-                        `;
-                        taskList.appendChild(li);
-                    });
+                    const li = document.createElement("li");
+                    li.innerHTML = `
+                        <b>${task.description}</b> - 💰 ${task.reward}
+                        <br>
+                        <button onclick="acceptTask('${task.task_id}')">🚀 Принять</button>
+                        <button onclick="viewTask('${task.task_id}')">👀 Посмотреть</button>
+                    `;
+                    taskList.appendChild(li);
+                });
 
                 } catch (error) {
                     logDebug(`❌ Ошибка загрузки ${category}: ${error}`);
@@ -167,6 +167,9 @@
             loadTasks("completed", "completed-tasks");
             loadTasks("history", "history-list");
         });
+        window.viewTask = function (taskId) {
+            window.location.href = `/task_details.html?task_id=${taskId}`;
+        };
     </script>
 
 </body>

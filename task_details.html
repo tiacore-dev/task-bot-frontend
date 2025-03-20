@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Детали задания</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="./env.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h2 id="task-title">Загрузка...</h2>
+        <p id="task-description"></p>
+        <p id="task-reward"></p>
+        <p id="task-status"></p>
+        <button id="accept-task-btn" style="display:none;">🚀 Принять задание</button>
+        <button onclick="goBack()">⬅ Назад</button>
+    </div>
+
+    <script>
+        function logDebug(message) {
+            console.log(message);
+        }
+
+        // Получаем ID задания из URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const taskId = urlParams.get("task_id");
+
+        if (!taskId) {
+            document.getElementById("task-title").innerText = "Ошибка!";
+            document.getElementById("task-description").innerText = "Задание не найдено.";
+        } else {
+            // Загружаем детали задания
+            fetch(`${window.env.API_URL}/tasks/${taskId}`)
+                .then(response => response.json())
+                .then(task => {
+                    document.getElementById("task-title").innerText = task.description;
+                    document.getElementById("task-description").innerText = `Описание: ${task.description}`;
+                    document.getElementById("task-reward").innerText = `💰 Вознаграждение: ${task.reward}`;
+                    document.getElementById("task-status").innerText = `📌 Статус: ${task.status_id}`;
+
+                    // Показываем кнопку "Принять задание", если оно ещё не принято
+                    if (task.status_id === "active") {
+                        document.getElementById("accept-task-btn").style.display = "block";
+                        document.getElementById("accept-task-btn").onclick = () => acceptTask(taskId);
+                    }
+                })
+                .catch(error => {
+                    console.error("Ошибка загрузки задания:", error);
+                    document.getElementById("task-title").innerText = "Ошибка загрузки!";
+                    document.getElementById("task-description").innerText = "Не удалось загрузить задание.";
+                });
+        }
+
+        // Функция принятия задания
+        function acceptTask(taskId) {
+            const tg = window.Telegram.WebApp;
+            const telegramId = tg.initDataUnsafe?.user?.id;
+            if (!telegramId) {
+                alert("Ошибка: Telegram ID не найден.");
+                return;
+            }
+
+            fetch(`${window.env.API_URL}/tasks/${taskId}/accept`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ telegram_id: telegramId }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert("✅ Задание принято!");
+                logDebug("✅ Принято: " + JSON.stringify(data));
+                window.history.back();
+            })
+            .catch(error => {
+                console.error("Ошибка принятия задания:", error);
+                alert("❌ Ошибка при принятии задания.");
+            });
+        }
+
+        // Функция возврата назад
+        function goBack() {
+            window.history.back();
+        }
+    </script>
+</body>
+</html>
