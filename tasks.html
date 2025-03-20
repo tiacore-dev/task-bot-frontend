@@ -65,8 +65,9 @@
             // 📌 Функция загрузки заданий
             async function loadTasks(category, elementId) {
                 logDebug(`📌 Загружаем ${category} задания...`);
+                const telegramId = tg.initDataUnsafe?.user?.id;
                 const endpoint = `${apiUrl}/tasks/${category}`;
-
+                
                 try {
                     const headers = {
                             "Accept": "application/json",
@@ -75,7 +76,7 @@
                     logDebug(`📌 Запрос: ${endpoint}`);
                     logDebug(`📌 Заголовки запроса: ${JSON.stringify(headers)}`);
 
-                    const response = await fetch(endpoint, {
+                    const response = await fetch(`${endpoint}?telegram_id=${telegramId}`, {
                         headers,
                         mode: "cors",
                         cache: "no-store"
