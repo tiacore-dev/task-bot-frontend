@@ -64,7 +64,7 @@
 
             fetch(`${window.env.API_URL}/tasks/${taskId}/accept`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
                 body: JSON.stringify({ telegram_id: telegramId }),
             })
             .then(response => response.json())
