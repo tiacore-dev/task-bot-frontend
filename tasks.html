@@ -6,7 +6,7 @@
     <title>Задания</title>
     <link rel="stylesheet" href="/static/styles.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="./env.js"></script>  <!-- Загружаем API_URL -->
+    <script src="/static/env.js"></script>  <!-- Загружаем API_URL -->
 </head>
 <body>
     <div class="container">
@@ -43,8 +43,8 @@
 
     <script>
         function logDebug(message) {
-            console.log(message);  // Лог в DevTools (если запущено в браузере)
-            document.getElementById("debug-log").innerText += `\n${message}`;  // Лог в Mini App
+            console.log(message);
+            document.getElementById("debug-log").innerText += `\n${message}`;
         }
 
         document.addEventListener("DOMContentLoaded", async function () {
@@ -59,24 +59,28 @@
             const apiUrl = window.env.API_URL;
             logDebug("📌 API URL: " + apiUrl);
 
-            const telegramId = tg.initDataUnsafe?.user?.id || "UNKNOWN";
+            const telegramId = tg.initDataUnsafe?.user?.id;
+            if (!telegramId) {
+                logDebug("❌ Telegram ID не найден!");
+                return;
+            }
             logDebug("📌 Telegram ID: " + telegramId);
 
             // 📌 Функция загрузки заданий
             async function loadTasks(category, elementId) {
                 logDebug(`📌 Загружаем ${category} задания...`);
-                const telegramId = tg.initDataUnsafe?.user?.id;
-                const endpoint = `${apiUrl}/tasks/${category}`;
-                
+                const endpoint = `${apiUrl}/tasks/${category}?telegram_id=${telegramId}`;
+
                 try {
                     const headers = {
-                            "Accept": "application/json",
-                            "ngrok-skip-browser-warning": "true"  // Убираем ngrok-баннер
-                        };
+                        "Accept": "application/json",
+                        "ngrok-skip-browser-warning": "true"
+                    };
+
                     logDebug(`📌 Запрос: ${endpoint}`);
                     logDebug(`📌 Заголовки запроса: ${JSON.stringify(headers)}`);
 
-                    const response = await fetch(`${endpoint}?telegram_id=${telegramId}`, {
+                    const response = await fetch(endpoint, {
                         headers,
                         mode: "cors",
                         cache: "no-store"
@@ -84,15 +88,12 @@
 
                     logDebug(`📌 Статус ответа (${category}): ${response.status} ${response.statusText}`);
 
-                    const text = await response.text();
-                    logDebug(`📌 Ответ сервера (${category}): ${text}`);
-
                     if (!response.ok) {
                         logDebug(`❌ Ошибка запроса: ${response.status} ${response.statusText}`);
                         return;
                     }
 
-                    const tasks = JSON.parse(text);
+                    const tasks = await response.json();
                     logDebug(`✅ Получены задания: ${JSON.stringify(tasks)}`);
 
                     const taskList = document.getElementById(elementId);
@@ -100,7 +101,12 @@
 
                     tasks.forEach(task => {
                         const li = document.createElement("li");
-                        li.innerHTML = `<b>${task.task_name}</b><br>${task.description}`;
+                        li.innerHTML = `
+                            <b>${task.description}</b> - 💰 ${task.reward}
+                            <br>
+                            <button onclick="acceptTask('${task.task_id}')">🚀 Принять</button>
+                            <button onclick="viewTask('${task.task_id}')">👀 Посмотреть</button>
+                        `;
                         taskList.appendChild(li);
                     });
 
@@ -123,12 +129,12 @@
                     logDebug(`📌 Ответ сервера (acceptTask): ${text}`);
 
                     if (response.ok) {
-                        alert("Задание принято!");
+                        alert("✅ Задание принято!");
                         logDebug("✅ Задание принято");
                         loadTasks("", "available-tasks");
                         loadTasks("my", "active-tasks");
                     } else {
-                        alert("Ошибка при принятии задания");
+                        alert("❌ Ошибка при принятии задания");
                         logDebug(`❌ Ошибка принятия задания: ${response.status} ${response.statusText}`);
                     }
                 } catch (error) {
@@ -136,31 +142,9 @@
                 }
             };
 
-            // 📌 Функция сдачи задания
-            window.submitTask = async function (taskId) {
-                try {
-                    logDebug(`📌 Отправляем задание ${taskId} на проверку`);
-                    const response = await fetch(`${apiUrl}/tasks/${taskId}/submit`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ telegram_id: telegramId }),
-                    });
-
-                    const text = await response.text();
-                    logDebug(`📌 Ответ сервера (submitTask): ${text}`);
-
-                    if (response.ok) {
-                        alert("Задание отправлено на проверку!");
-                        logDebug("✅ Задание отправлено на проверку");
-                        loadTasks("my", "active-tasks");
-                        loadTasks("completed", "completed-tasks");
-                    } else {
-                        alert("Ошибка при сдаче задания");
-                        logDebug(`❌ Ошибка при сдаче задания: ${response.status} ${response.statusText}`);
-                    }
-                } catch (error) {
-                    logDebug(`❌ Ошибка сети при сдаче задания: ${error}`);
-                }
+            // 📌 Функция просмотра задания
+            window.viewTask = function (taskId) {
+                window.location.href = `/task.html?task_id=${taskId}`;
             };
 
             // 📌 Функция переключения вкладок
@@ -180,8 +164,8 @@
             // 📌 Загружаем задания
             loadTasks("", "available-tasks");
             loadTasks("my", "active-tasks");
-            //loadTasks("completed", "completed-tasks");
-            //loadTasks("history", "history-list");
+            loadTasks("completed", "completed-tasks");
+            loadTasks("history", "history-list");
         });
     </script>
 
