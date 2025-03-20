@@ -75,7 +75,11 @@
                     logDebug(`📌 Запрос: ${endpoint}`);
                     logDebug(`📌 Заголовки запроса: ${JSON.stringify(headers)}`);
 
-                    const response = await fetch(endpoint, { headers });
+                    const response = await fetch(endpoint, {
+                        headers,
+                        mode: "cors",
+                        cache: "no-store"
+                    });
 
                     logDebug(`📌 Статус ответа (${category}): ${response.status} ${response.statusText}`);
 
