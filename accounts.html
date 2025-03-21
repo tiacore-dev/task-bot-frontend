@@ -113,11 +113,13 @@
         }
 
         try {
-            const response = await fetch(`${apiUrl}/accounts`, {
+            const response = await fetch(`${apiUrl}/accounts?telegram_id=${telegramId}`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "ngrok-skip-browser-warning": "true"
+                },
                 body: JSON.stringify({
-                    telegram_id: telegramId,
                     platform: platformId,
                     account_name: accountName,
                     account_platform_id: accountPlatformId
