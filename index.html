@@ -43,7 +43,7 @@
                 const apiUrl = window.env.API_URL;
 
                 try {
-                    const response = await fetch(`${apiUrl}/account/auth`, {
+                    const response = await fetch(`${apiUrl}/accounts/auth`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(telegramData),
