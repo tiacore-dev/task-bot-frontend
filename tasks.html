@@ -6,12 +6,12 @@
     <title>Задания</title>
     <link rel="stylesheet" href="/static/styles.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="./env.js"></script>  <!-- Загружаем API_URL -->
+    <script src="./env.js"></script>
 </head>
 <body>
     <div class="container">
         <h2>Задания</h2>
-        
+
         <!-- 🔗 Кнопка перехода на страницу аккаунтов -->
         <button onclick="window.location.href='/accounts.html'">🔗 Привязать аккаунты</button>
 
@@ -51,6 +51,22 @@
             document.getElementById("debug-log").innerText += `\n${message}`;
         }
 
+        // 📌 Глобальная функция переключения вкладок
+        function showTab(tabId) {
+            document.querySelectorAll(".tab-content").forEach(tab => tab.classList.remove("active"));
+            document.querySelectorAll(".tab-btn").forEach(button => button.classList.remove("active"));
+
+            document.getElementById(tabId).classList.add("active");
+            document.querySelector(`button[onclick="showTab('${tabId}')"]`).classList.add("active");
+
+            logDebug(`📌 Переключились на вкладку: ${tabId}`);
+        }
+
+        // 📌 Функция просмотра задания
+        function viewTask(taskId) {
+            window.location.href = `./task_details.html?task_id=${taskId}`;
+        }
+
         document.addEventListener("DOMContentLoaded", async function () {
             const tg = window.Telegram.WebApp;
             tg.expand();
@@ -70,7 +86,7 @@
             }
             logDebug("📌 Telegram ID: " + telegramId);
 
-            // 📌 Функция загрузки заданий
+            // 📌 Загрузка заданий
             async function loadTasks(category, elementId) {
                 logDebug(`📌 Загружаем ${category} задания...`);
                 const endpoint = `${apiUrl}/tasks/${category}?telegram_id=${telegramId}`;
@@ -80,9 +96,6 @@
                         "Accept": "application/json",
                         "ngrok-skip-browser-warning": "true"
                     };
-
-                    logDebug(`📌 Запрос: ${endpoint}`);
-                    logDebug(`📌 Заголовки запроса: ${JSON.stringify(headers)}`);
 
                     const response = await fetch(endpoint, {
                         headers,
@@ -108,7 +121,6 @@
                         li.innerHTML = `
                             <b>${task.description}</b> - 💰 ${task.reward}
                             <br>
-                            <button onclick="acceptTask('${task.task_id}')">🚀 Принять</button>
                             <button onclick="viewTask('${task.task_id}')">👀 Посмотреть</button>
                         `;
                         taskList.appendChild(li);
@@ -119,11 +131,8 @@
                 }
             }
 
-            // 📌 Функция загрузки аккаунтов
+            // 📌 Загрузка аккаунтов для последующих действий
             async function loadAccountsToCache() {
-                const apiUrl = window.env.API_URL;
-                const telegramId = tg.initDataUnsafe?.user?.id;
-
                 try {
                     const response = await fetch(`${apiUrl}/accounts?telegram_id=${telegramId}`, {
                         headers: { "Accept": "application/json", "ngrok-skip-browser-warning": "true" }
@@ -141,76 +150,16 @@
                 }
             }
 
-            // 📌 Получаем аккаунты из кеша (или загружаем, если их нет)
-            function getCachedAccounts() {
-                const cachedAccounts = localStorage.getItem("user_accounts");
-                return cachedAccounts ? JSON.parse(cachedAccounts) : null;
-            }
+            // 📌 Инициализация
+            await loadAccountsToCache();
+            await loadTasks("", "available-tasks");
+            await loadTasks("my", "active-tasks");
+            await loadTasks("completed", "completed-tasks");
+            await loadTasks("history", "history-list");
 
-            // 📌 Функция принятия задания
-            async function acceptTask(taskId) {
-                const telegramId = tg.initDataUnsafe?.user?.id;
-                if (!telegramId) {
-                    alert("Ошибка: Telegram ID не найден.");
-                    return;
-                }
-
-                let accounts = getCachedAccounts();
-                if (!accounts) {
-                    await loadAccountsToCache();
-                    accounts = getCachedAccounts();
-                }
-
-                if (!accounts || accounts.length === 0) {
-                    alert("❌ У вас нет привязанных аккаунтов. Сначала привяжите аккаунт!");
-                    window.location.href = "/accounts.html";
-                    return;
-                }
-
-                let accountId;
-                if (accounts.length === 1) {
-                    accountId = accounts[0].account_id;
-                } else {
-                    accountId = prompt("Выберите ID аккаунта для выполнения задания:\n" +
-                        accounts.map(acc => `${acc.account_id}: ${acc.account_name} (${acc.platform})`).join("\n"));
-                    if (!accountId) return;
-                }
-
-                logDebug(`📌 Принятие задания ${taskId} с аккаунтом ${accountId}`);
-
-                fetch(`${window.env.API_URL}/tasks/${taskId}/accept`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
-                    body: JSON.stringify({ telegram_id: telegramId, account_id: accountId }),
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        alert(`❌ Ошибка: ${data.error}`);
-                    } else {
-                        alert("✅ Задание принято!");
-                        logDebug("✅ Принято: " + JSON.stringify(data));
-                        window.history.back();
-                    }
-                })
-                .catch(error => {
-                    console.error("Ошибка принятия задания:", error);
-                    alert("❌ Ошибка при принятии задания.");
-                });
-            }
-
-            // 📌 Загружаем аккаунты при старте
-            document.addEventListener("DOMContentLoaded", loadAccountsToCache);
-
-            // 📌 Загружаем задания
-            loadTasks("", "available-tasks");
-            loadTasks("my", "active-tasks");
-            loadTasks("completed", "completed-tasks");
-            loadTasks("history", "history-list");
-
-            window.viewTask = function (taskId) {
-                window.location.href = `./task_details.html?task_id=${taskId}`;
-            };
+            // 👇 делаем функции глобальными
+            window.viewTask = viewTask;
+            window.showTab = showTab;
         });
     </script>
 </body>
