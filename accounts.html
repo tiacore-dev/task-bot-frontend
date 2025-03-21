@@ -46,7 +46,7 @@
             logDebug(`📌 Загружаем аккаунты пользователя ${telegramId}`);
 
             try {
-                const response = await fetch(`${apiUrl}/accounts?telegram_id=${telegramId}`, {
+                const response = await fetch(`${apiUrl}/account?telegram_id=${telegramId}`, {
                     headers: { "Accept": "application/json", "ngrok-skip-browser-warning": "true" }
                 });
 
@@ -91,7 +91,7 @@
             logDebug(`📌 Привязываем аккаунт: ${accountName} (${platform})`);
 
             try {
-                const response = await fetch(`${apiUrl}/accounts`, {
+                const response = await fetch(`${apiUrl}/account`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({

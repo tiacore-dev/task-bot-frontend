@@ -85,13 +85,13 @@
             logDebug(`📌 Принятие задания ${taskId} с аккаунтом ${accountId}`);
 
             try {
-                const response = await fetch(`${apiUrl}/tasks/${taskId}/accept`, {
+                const response = await fetch(`${apiUrl}/tasks/${taskId}/accept?telegram_id=${telegramId}`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
                         "ngrok-skip-browser-warning": "true"
                     },
-                    body: JSON.stringify({ telegram_id: telegramId, account_id: accountId })
+                    body: JSON.stringify({ account_id: accountId })  // Только account_id в теле!
                 });
 
                 const result = await response.json();
@@ -116,7 +116,7 @@
             }
 
             try {
-                const response = await fetch(`${apiUrl}/tasks/${taskId}`, {
+                const response = await fetch(`${apiUrl}/tasks/${taskId}?telegram_id=${telegramId}`, {
                     headers: { "ngrok-skip-browser-warning": "true" }
                 });
 
