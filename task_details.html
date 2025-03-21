@@ -23,70 +23,128 @@
             console.log(message);
         }
 
-        // Получаем ID задания из URL
+        function goBack() {
+            window.history.back();
+        }
+
+        const tg = window.Telegram.WebApp;
+        const apiUrl = window.env.API_URL;
+        const telegramId = tg.initDataUnsafe?.user?.id;
         const urlParams = new URLSearchParams(window.location.search);
         const taskId = urlParams.get("task_id");
 
-        if (!taskId) {
-            document.getElementById("task-title").innerText = "Ошибка!";
-            document.getElementById("task-description").innerText = "Задание не найдено.";
-        } else {
-            // Загружаем детали задания
-            //fetch(`${window.env.API_URL}/tasks/${taskId}`)
-            fetch(`${window.env.API_URL}/tasks/${taskId}`, {
-                method: "GET",
-                headers: { "ngrok-skip-browser-warning": "true" },
-            })
-                .then(response => response.json())
-                .then(task => {
-                    document.getElementById("task-title").innerText = task.description;
-                    document.getElementById("task-description").innerText = `Описание: ${task.description}`;
-                    document.getElementById("task-reward").innerText = `💰 Вознаграждение: ${task.reward}`;
-                    document.getElementById("task-status").innerText = `📌 Статус: ${task.status_id}`;
-
-                    // Показываем кнопку "Принять задание", если оно ещё не принято
-                    if (task.status_id === "active") {
-                        document.getElementById("accept-task-btn").style.display = "block";
-                        document.getElementById("accept-task-btn").onclick = () => acceptTask(taskId);
-                    }
-                })
-                .catch(error => {
-                    console.error("Ошибка загрузки задания:", error);
-                    document.getElementById("task-title").innerText = "Ошибка загрузки!";
-                    document.getElementById("task-description").innerText = "Не удалось загрузить задание.";
+        // 📌 Кеширование аккаунтов
+        async function loadAccountsToCache() {
+            try {
+                const response = await fetch(`${apiUrl}/accounts?telegram_id=${telegramId}`, {
+                    headers: { "Accept": "application/json", "ngrok-skip-browser-warning": "true" }
                 });
+
+                const accounts = await response.json();
+                if (response.ok && accounts.length > 0) {
+                    localStorage.setItem("user_accounts", JSON.stringify(accounts));
+                    logDebug("✅ Аккаунты сохранены в кеш: " + JSON.stringify(accounts));
+                }
+            } catch (error) {
+                logDebug(`❌ Ошибка загрузки аккаунтов: ${error}`);
+            }
         }
 
-        // Функция принятия задания
-        function acceptTask(taskId) {
-            const tg = window.Telegram.WebApp;
-            const telegramId = tg.initDataUnsafe?.user?.id;
+        function getCachedAccounts() {
+            const data = localStorage.getItem("user_accounts");
+            return data ? JSON.parse(data) : null;
+        }
+
+        async function acceptTask(taskId) {
             if (!telegramId) {
                 alert("Ошибка: Telegram ID не найден.");
                 return;
             }
 
-            fetch(`${window.env.API_URL}/tasks/${taskId}/accept`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
-                body: JSON.stringify({ telegram_id: telegramId }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert("✅ Задание принято!");
-                logDebug("✅ Принято: " + JSON.stringify(data));
-                window.history.back();
-            })
-            .catch(error => {
+            let accounts = getCachedAccounts();
+            if (!accounts) {
+                await loadAccountsToCache();
+                accounts = getCachedAccounts();
+            }
+
+            if (!accounts || accounts.length === 0) {
+                alert("❌ У вас нет привязанных аккаунтов. Сначала привяжите аккаунт!");
+                window.location.href = "/accounts.html";
+                return;
+            }
+
+            let accountId;
+            if (accounts.length === 1) {
+                accountId = accounts[0].account_id;
+            } else {
+                accountId = prompt("Выберите ID аккаунта:\n" +
+                    accounts.map(a => `${a.account_id}: ${a.account_name} (${a.platform})`).join("\n"));
+                if (!accountId) return;
+            }
+
+            logDebug(`📌 Принятие задания ${taskId} с аккаунтом ${accountId}`);
+
+            try {
+                const response = await fetch(`${apiUrl}/tasks/${taskId}/accept`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "ngrok-skip-browser-warning": "true"
+                    },
+                    body: JSON.stringify({ telegram_id: telegramId, account_id: accountId })
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    alert("✅ Задание принято!");
+                    logDebug("✅ Ответ сервера: " + JSON.stringify(result));
+                    goBack();
+                } else {
+                    alert(`❌ Ошибка: ${result.error || 'Неизвестная ошибка'}`);
+                }
+            } catch (error) {
                 console.error("Ошибка принятия задания:", error);
-                alert("❌ Ошибка при принятии задания.");
-            });
+                alert("❌ Ошибка сети при принятии задания.");
+            }
         }
 
-        // Функция возврата назад
-        function goBack() {
-            window.history.back();
+        async function loadTaskDetails() {
+            if (!taskId) {
+                document.getElementById("task-title").innerText = "Ошибка!";
+                document.getElementById("task-description").innerText = "Задание не найдено.";
+                return;
+            }
+
+            try {
+                const response = await fetch(`${apiUrl}/tasks/${taskId}`, {
+                    headers: { "ngrok-skip-browser-warning": "true" }
+                });
+
+                const task = await response.json();
+
+                document.getElementById("task-title").innerText = task.description;
+                document.getElementById("task-description").innerText = `Описание: ${task.description}`;
+                document.getElementById("task-reward").innerText = `💰 Вознаграждение: ${task.reward}`;
+                document.getElementById("task-status").innerText = `📌 Статус: ${task.status_id}`;
+
+                if (task.status_id === "active") {
+                    const btn = document.getElementById("accept-task-btn");
+                    btn.style.display = "block";
+                    btn.onclick = () => acceptTask(taskId);
+                }
+            } catch (error) {
+                console.error("Ошибка загрузки задания:", error);
+                document.getElementById("task-title").innerText = "Ошибка загрузки!";
+                document.getElementById("task-description").innerText = "Не удалось загрузить задание.";
+            }
         }
+
+        // 📌 Инициализация
+        document.addEventListener("DOMContentLoaded", () => {
+            tg.expand();
+            loadAccountsToCache();
+            loadTaskDetails();
+        });
     </script>
 </body>
 </html>

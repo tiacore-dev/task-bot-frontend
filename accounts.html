@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мои аккаунты</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="./env.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h2>Привязанные аккаунты</h2>
+        <ul id="accounts-list"></ul>
+
+        <h3>➕ Привязать новый аккаунт</h3>
+        <label for="platform">Выберите платформу:</label>
+        <select id="platform">
+            <option value="youtube">YouTube</option>
+            <option value="twitter">Twitter</option>
+            <option value="telegram">Telegram</option>
+            <option value="instagram">Instagram</option>
+        </select>
+
+        <input type="text" id="account-name" placeholder="Название аккаунта">
+        <input type="text" id="account-platform-id" placeholder="ID аккаунта">
+        <button onclick="addAccount()">➕ Привязать</button>
+
+        <button onclick="goBack()">🔙 Назад</button>
+
+        <p id="debug-log" style="font-size: 12px; color: gray; white-space: pre-wrap;"></p>
+    </div>
+
+    <script>
+        function logDebug(message) {
+            console.log(message);
+            document.getElementById("debug-log").innerText += `\n${message}`;
+        }
+
+        // 📌 Загружаем список аккаунтов пользователя
+        async function loadAccounts() {
+            const tg = window.Telegram.WebApp;
+            const apiUrl = window.env.API_URL;
+            const telegramId = tg.initDataUnsafe?.user?.id;
+
+            logDebug(`📌 Загружаем аккаунты пользователя ${telegramId}`);
+
+            try {
+                const response = await fetch(`${apiUrl}/accounts?telegram_id=${telegramId}`, {
+                    headers: { "Accept": "application/json", "ngrok-skip-browser-warning": "true" }
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    const accountsList = document.getElementById("accounts-list");
+                    accountsList.innerHTML = "";
+
+                    data.forEach(account => {
+                        const li = document.createElement("li");
+                        li.innerHTML = `
+                            <b>${account.account_name}</b> (${account.platform})
+                            <br>🆔 ${account.account_platform_id}
+                            <button onclick="selectAccount(${account.account_id})">✔ Выбрать</button>
+                        `;
+                        accountsList.appendChild(li);
+                    });
+
+                } else {
+                    alert(data.error);
+                }
+            } catch (error) {
+                logDebug(`❌ Ошибка загрузки аккаунтов: ${error}`);
+            }
+        }
+
+        // 📌 Привязка нового аккаунта
+        async function addAccount() {
+            const tg = window.Telegram.WebApp;
+            const apiUrl = window.env.API_URL;
+            const telegramId = tg.initDataUnsafe?.user?.id;
+
+            const platform = document.getElementById("platform").value;
+            const accountName = document.getElementById("account-name").value;
+            const accountPlatformId = document.getElementById("account-platform-id").value;
+
+            if (!accountName || !accountPlatformId) {
+                alert("❌ Заполните все поля!");
+                return;
+            }
+
+            logDebug(`📌 Привязываем аккаунт: ${accountName} (${platform})`);
+
+            try {
+                const response = await fetch(`${apiUrl}/accounts`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        telegram_id: telegramId,
+                        platform: platform,
+                        account_name: accountName,
+                        account_platform_id: accountPlatformId
+                    })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert("✅ Аккаунт привязан!");
+                    loadAccounts();
+                } else {
+                    alert(`❌ Ошибка: ${data.error}`);
+                }
+            } catch (error) {
+                logDebug(`❌ Ошибка привязки аккаунта: ${error}`);
+            }
+        }
+
+        function selectAccount(accountId) {
+            localStorage.setItem("selectedAccount", accountId);
+            window.location.href = "/tasks.html";
+        }
+
+        function goBack() {
+            window.location.href = "/tasks.html";
+        }
+
+        document.addEventListener("DOMContentLoaded", loadAccounts);
+    </script>
+</body>
+</html>
