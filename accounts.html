@@ -9,6 +9,30 @@
     <script src="./env.js"></script>
 </head>
 <body>
+<!-- Модалка редактирования -->
+<div class="modal fade" id="editAccountModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Редактировать аккаунт</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="edit-account-id">
+          <div class="mb-3">
+            <label class="form-label">Название</label>
+            <input type="text" id="edit-account-name" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">ID аккаунта</label>
+            <input type="text" id="edit-account-platform-id" class="form-control">
+          </div>
+          <button class="btn btn-primary" onclick="saveAccountChanges()">💾 Сохранить</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
 <div class="container py-4">
     <h2 class="mb-4">📱 Привязанные аккаунты</h2>
 
@@ -82,6 +106,7 @@
             if (response.ok) {
                 const accountsList = document.getElementById("accounts-list");
                 accountsList.innerHTML = "";
+                window.lastLoadedAccounts = data;
 
                 data.forEach(account => {
                     const li = document.createElement("li");
@@ -89,8 +114,12 @@
                     li.innerHTML = `
                         <b>${account.account_name}</b> (${account.platform})<br>
                         🆔 ${account.account_platform_id}
-                        <button class="btn btn-sm btn-outline-primary mt-2" onclick="selectAccount(${account.account_id})">✔ Выбрать</button>
-                    `;
+                        <div class="mt-2">
+                            <button class="btn btn-sm btn-outline-primary me-2" onclick="openEditModal('${account.account_id}')">✏</button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteAccount('${account.account_id}')">🗑</button>
+                        </div>
+                        `;
+
                     accountsList.appendChild(li);
                 });
 
@@ -146,6 +175,56 @@
     function goBack() {
         window.location.href = "/tasks.html";
     }
+    function openEditModal(accountId) {
+        const account = window.lastLoadedAccounts?.find(a => a.account_id === accountId);
+        if (!account) return;
+
+        document.getElementById("edit-account-id").value = account.account_id;
+        document.getElementById("edit-account-name").value = account.account_name;
+        document.getElementById("edit-account-platform-id").value = account.account_platform_id;
+
+        new bootstrap.Modal(document.getElementById("editAccountModal")).show();
+    }
+
+    async function saveAccountChanges() {
+        const accountId = document.getElementById("edit-account-id").value;
+        const name = document.getElementById("edit-account-name").value.trim();
+        const platformId = document.getElementById("edit-account-platform-id").value.trim();
+
+        const res = await fetch(`${apiUrl}/accounts/${accountId}?telegram_id=${telegramId}`, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                "ngrok-skip-browser-warning": "true"
+            },
+            body: JSON.stringify({ account_name: name, account_platform_id: platformId })
+        });
+
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById("editAccountModal")).hide();
+            loadAccounts();
+        } else {
+            alert("❌ Ошибка при обновлении");
+        }
+    }
+
+    async function deleteAccount(accountId) {
+        if (!confirm("Удалить аккаунт?")) return;
+
+        const res = await fetch(`${apiUrl}/accounts/${accountId}?telegram_id=${telegramId}`, {
+            method: "DELETE",
+            headers: { "ngrok-skip-browser-warning": "true" }
+        });
+
+        if (res.ok) {
+            loadAccounts();
+        } else {
+            alert("❌ Ошибка при удалении");
+        }
+    }
+
+
+
 
     document.addEventListener("DOMContentLoaded", () => {
         tg.expand();

@@ -73,14 +73,13 @@
                 return;
             }
 
-            let accountId;
             if (accounts.length === 1) {
-                accountId = accounts[0].account_id;
+                localStorage.setItem("selectedAccount", accounts[0].account_id);
+                window.location.href = "/tasks.html";
             } else {
-                accountId = prompt("Выберите ID аккаунта:\n" +
-                    accounts.map(a => `${a.account_id}: ${a.account_name} (${a.platform})`).join("\n"));
-                if (!accountId) return;
+                showAccountSelector(accounts);
             }
+
 
             logDebug(`📌 Принятие задания ${taskId} с аккаунтом ${accountId}`);
 
