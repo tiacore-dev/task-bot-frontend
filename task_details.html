@@ -74,15 +74,16 @@
             }
 
             if (accounts.length === 1) {
-                localStorage.setItem("selectedAccount", accounts[0].account_id);
-                window.location.href = "/tasks.html";
+                const accountId = accounts[0].account_id;
+                localStorage.setItem("selectedAccount", accountId);
+                await sendAcceptRequest(accountId);
             } else {
                 showAccountSelector(accounts);
             }
+        }
 
 
-            logDebug(`📌 Принятие задания ${taskId} с аккаунтом ${accountId}`);
-
+        async function sendAcceptRequest(accountId) {
             try {
                 const response = await fetch(`${apiUrl}/tasks/${taskId}/accept?telegram_id=${telegramId}`, {
                     method: "POST",
@@ -90,7 +91,7 @@
                         "Content-Type": "application/json",
                         "ngrok-skip-browser-warning": "true"
                     },
-                    body: JSON.stringify({ account_id: accountId })  // Только account_id в теле!
+                    body: JSON.stringify({ account_id: accountId })
                 });
 
                 const result = await response.json();
@@ -106,6 +107,20 @@
                 alert("❌ Ошибка сети при принятии задания.");
             }
         }
+
+        function showAccountSelector(accounts) {
+            const choice = prompt("Выберите аккаунт:\n" +
+                accounts.map(a => `${a.account_id}: ${a.account_name} (${a.platform})`).join("\n"));
+
+            const selected = accounts.find(a => a.account_id === choice);
+            if (selected) {
+                localStorage.setItem("selectedAccount", selected.account_id);
+                sendAcceptRequest(selected.account_id);
+            } else {
+                alert("❌ Аккаунт не выбран.");
+            }
+        }
+
 
         async function loadTaskDetails() {
             if (!taskId) {
