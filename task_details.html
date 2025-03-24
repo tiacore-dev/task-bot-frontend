@@ -24,20 +24,20 @@
         
         <button onclick="goBack()">⬅ Назад</button>
     </div>
-    <div class="modal fade" id="accountModal" tabindex="-1" aria-labelledby="accountModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-          <div class="modal-content shadow">
-            <div class="modal-header">
-              <h5 class="modal-title" id="accountModalLabel">Выберите аккаунт</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-            </div>
-            <div class="modal-body">
-              <ul id="account-options" class="list-group"></ul>
-            </div>
-          </div>
+<!-- Модалка -->
+<div class="modal fade" id="accountModal" tabindex="-1" aria-labelledby="accountModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content shadow-lg rounded-4">
+        <div class="modal-header border-0">
+          <h5 class="modal-title w-100 text-center" id="accountModalLabel">Выберите аккаунт</h5>
+        </div>
+        <div class="modal-body d-grid gap-2" id="account-options" style="padding: 1rem 2rem;">
+          <!-- Кнопки аккаунтов рендерятся тут -->
         </div>
       </div>
-      
+    </div>
+  </div>
+  
     <script>
         function logDebug(message) {
             console.log(message);
@@ -135,27 +135,28 @@
             list.innerHTML = "";
 
             accounts.forEach(account => {
-                const li = document.createElement("li");
-                li.className = "list-group-item list-group-item-action";
-                li.style.cursor = "pointer";
-                li.innerHTML = `
-                    <b>${account.account_name}</b> (${account.platform})<br>
-                    <small>${account.account_platform_id}</small>
+                const btn = document.createElement("button");
+                btn.className = "btn btn-outline-dark text-start";
+                btn.innerHTML = `
+                    <div><b>${account.account_name}</b></div>
+                    <div class="small text-muted">${account.platform}</div>
+                    <div class="small text-muted">${account.account_platform_id}</div>
                 `;
-                li.onclick = () => {
+                btn.onclick = () => {
                     const selectedId = account.account_id;
                     localStorage.setItem("selectedAccount", selectedId);
                     const modal = bootstrap.Modal.getInstance(document.getElementById("accountModal"));
                     modal.hide();
                     sendAcceptRequest(selectedId);
                 };
-                list.appendChild(li);
+                list.appendChild(btn);
             });
 
             const modalEl = document.getElementById("accountModal");
             modalInstance = new bootstrap.Modal(modalEl);
             modalInstance.show();
         }
+
 
 
 
