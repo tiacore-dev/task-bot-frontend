@@ -1,202 +1,171 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Детали задания</title>
-    <link rel="stylesheet" href="/static/styles.css">
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="./env.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Детали задания</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="./env.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <style>
+    body {
+      background-color: var(--tg-theme-bg-color);
+      color: var(--tg-theme-text-color);
+    }
+    .container {
+      max-width: 500px;
+      margin-top: 30px;
+    }
+    .rounded-4 {
+      border-radius: 1rem;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h2 id="task-title">Загрузка...</h2>
-        <p id="task-description"></p>
-        <p id="task-reward"></p>
-        <p id="task-status"></p>
-        <div class="d-flex justify-content-center my-3">
-            <button id="accept-task-btn" class="btn btn-success" style="display: none;">
-                🚀 Принять задание
-            </button>
-        </div>
-        
-        
-        <button onclick="goBack()">⬅ Назад</button>
+  <div class="container">
+    <div class="card p-4 shadow-sm">
+      <h4 id="task-title" class="text-center fw-bold">Загрузка...</h4>
+      <p id="task-description"></p>
+      <p id="task-reward"></p>
+      <p id="task-status"></p>
+
+      <div class="d-flex justify-content-center my-3" id="action-buttons">
+        <button id="accept-task-btn" class="btn btn-success" style="display: none;">
+          🚀 Принять задание
+        </button>
+      </div>
+
+      <button class="btn btn-outline-secondary w-100" onclick="goBack()">⬅ Назад</button>
     </div>
-<!-- Модалка -->
-<div class="modal fade" id="accountModal" tabindex="-1" aria-labelledby="accountModalLabel" aria-hidden="true">
+  </div>
+
+  <!-- Шторка выбора аккаунта -->
+  <div class="modal fade" id="accountModal" tabindex="-1" aria-labelledby="accountModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content shadow-lg rounded-4">
         <div class="modal-header border-0">
           <h5 class="modal-title w-100 text-center" id="accountModalLabel">Выберите аккаунт</h5>
         </div>
-        <div class="modal-body d-grid gap-2" id="account-options" style="padding: 1rem 2rem;">
-          <!-- Кнопки аккаунтов рендерятся тут -->
+        <div class="modal-body d-grid gap-2 px-4" id="account-options">
+          <!-- Аккаунты сюда -->
         </div>
       </div>
     </div>
   </div>
-  
-    <script>
-        function logDebug(message) {
-            console.log(message);
-        }
 
-        function goBack() {
-            window.history.back();
-        }
+  <script>
+    const tg = window.Telegram.WebApp;
+    const apiUrl = window.env.API_URL;
+    const telegramId = tg.initDataUnsafe?.user?.id;
+    const urlParams = new URLSearchParams(window.location.search);
+    const taskId = urlParams.get("task_id");
 
-        const tg = window.Telegram.WebApp;
-        const apiUrl = window.env.API_URL;
-        const telegramId = tg.initDataUnsafe?.user?.id;
-        const urlParams = new URLSearchParams(window.location.search);
-        const taskId = urlParams.get("task_id");
+    tg.expand();
 
-        // 📌 Кеширование аккаунтов
-        async function loadAccountsToCache() {
-            try {
-                const response = await fetch(`${apiUrl}/accounts?telegram_id=${telegramId}`, {
-                    headers: { "Accept": "application/json", "ngrok-skip-browser-warning": "true" }
-                });
+    function goBack() {
+      window.history.back();
+    }
 
-                const accounts = await response.json();
-                if (response.ok && accounts.length > 0) {
-                    localStorage.setItem("user_accounts", JSON.stringify(accounts));
-                    logDebug("✅ Аккаунты сохранены в кеш: " + JSON.stringify(accounts));
-                }
-            } catch (error) {
-                logDebug(`❌ Ошибка загрузки аккаунтов: ${error}`);
-            }
-        }
+    function getCachedAccounts() {
+      const data = localStorage.getItem("user_accounts");
+      return data ? JSON.parse(data) : null;
+    }
 
-        function getCachedAccounts() {
-            const data = localStorage.getItem("user_accounts");
-            return data ? JSON.parse(data) : null;
-        }
+    async function loadAccountsToCache() {
+      const response = await fetch(`${apiUrl}/accounts?telegram_id=${telegramId}`, {
+        headers: { "Accept": "application/json", "ngrok-skip-browser-warning": "true" }
+      });
+      const accounts = await response.json();
+      if (response.ok) {
+        localStorage.setItem("user_accounts", JSON.stringify(accounts));
+      }
+    }
 
-        async function acceptTask(taskId) {
-            if (!telegramId) {
-                alert("Ошибка: Telegram ID не найден.");
-                return;
-            }
+    function showAccountSelector(accounts) {
+      const list = document.getElementById("account-options");
+      list.innerHTML = "";
+      accounts.forEach(account => {
+        const btn = document.createElement("button");
+        btn.className = "btn btn-outline-dark text-start";
+        btn.innerHTML = `
+          <div><b>${account.account_name}</b></div>
+          <div class="small text-muted">${account.platform}</div>
+          <div class="small text-muted">${account.account_platform_id}</div>
+        `;
+        btn.onclick = () => {
+          const selectedId = account.account_id;
+          localStorage.setItem("selectedAccount", selectedId);
+          bootstrap.Modal.getInstance(document.getElementById("accountModal")).hide();
+          sendAcceptRequest(selectedId);
+        };
+        list.appendChild(btn);
+      });
 
-            let accounts = getCachedAccounts();
-            if (!accounts) {
-                await loadAccountsToCache();
-                accounts = getCachedAccounts();
-            }
+      new bootstrap.Modal(document.getElementById("accountModal")).show();
+    }
 
-            if (!accounts || accounts.length === 0) {
-                alert("❌ У вас нет привязанных аккаунтов. Сначала привяжите аккаунт!");
-                window.location.href = "/accounts.html";
-                return;
-            }
+    async function sendAcceptRequest(accountId) {
+      const response = await fetch(`${apiUrl}/tasks/${taskId}/accept?telegram_id=${telegramId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true"
+        },
+        body: JSON.stringify({ account_id: accountId })
+      });
 
-            if (accounts.length === 1) {
-                const accountId = accounts[0].account_id;
-                localStorage.setItem("selectedAccount", accountId);
-                await sendAcceptRequest(accountId);
-            } else {
-                showAccountSelector(accounts);
-            }
-        }
+      const result = await response.json();
+      if (response.ok) {
+        alert("✅ Задание принято!");
+        goBack();
+      } else {
+        alert(`❌ Ошибка: ${result.error || 'Неизвестная ошибка'}`);
+      }
+    }
 
+    async function loadTaskDetails() {
+      const response = await fetch(`${apiUrl}/tasks/${taskId}?telegram_id=${telegramId}`, {
+        headers: { "ngrok-skip-browser-warning": "true" }
+      });
+      const task = await response.json();
+      const title = document.getElementById("task-title");
+      const desc = document.getElementById("task-description");
+      const reward = document.getElementById("task-reward");
+      const status = document.getElementById("task-status");
 
-        async function sendAcceptRequest(accountId) {
-            try {
-                const response = await fetch(`${apiUrl}/tasks/${taskId}/accept?telegram_id=${telegramId}`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "ngrok-skip-browser-warning": "true"
-                    },
-                    body: JSON.stringify({ account_id: accountId })
-                });
+      title.innerText = task.description;
+      desc.innerText = `Описание: ${task.description}`;
+      reward.innerText = `💰 Вознаграждение: ${task.reward}`;
+      status.innerText = `📌 Статус: ${task.status_id}`;
 
-                const result = await response.json();
-                if (response.ok) {
-                    alert("✅ Задание принято!");
-                    logDebug("✅ Ответ сервера: " + JSON.stringify(result));
-                    goBack();
-                } else {
-                    alert(`❌ Ошибка: ${result.error || 'Неизвестная ошибка'}`);
-                }
-            } catch (error) {
-                console.error("Ошибка принятия задания:", error);
-                alert("❌ Ошибка сети при принятии задания.");
-            }
-        }
+      const btn = document.getElementById("accept-task-btn");
+      if (task.status_id === "active") {
+        btn.style.display = "block";
+        btn.onclick = async () => {
+          let accounts = getCachedAccounts();
+          if (!accounts) {
+            await loadAccountsToCache();
+            accounts = getCachedAccounts();
+          }
+          if (!accounts || accounts.length === 0) {
+            alert("❌ Сначала привяжите аккаунт!");
+            window.location.href = "/accounts.html";
+            return;
+          }
+          if (accounts.length === 1) {
+            await sendAcceptRequest(accounts[0].account_id);
+          } else {
+            showAccountSelector(accounts);
+          }
+        };
+      }
+    }
 
-        let modalInstance;
-
-        function showAccountSelector(accounts) {
-            const list = document.getElementById("account-options");
-            list.innerHTML = "";
-
-            accounts.forEach(account => {
-                const btn = document.createElement("button");
-                btn.className = "btn btn-outline-dark text-start";
-                btn.innerHTML = `
-                    <div><b>${account.account_name}</b></div>
-                    <div class="small text-muted">${account.platform}</div>
-                    <div class="small text-muted">${account.account_platform_id}</div>
-                `;
-                btn.onclick = () => {
-                    const selectedId = account.account_id;
-                    localStorage.setItem("selectedAccount", selectedId);
-                    const modal = bootstrap.Modal.getInstance(document.getElementById("accountModal"));
-                    modal.hide();
-                    sendAcceptRequest(selectedId);
-                };
-                list.appendChild(btn);
-            });
-
-            const modalEl = document.getElementById("accountModal");
-            modalInstance = new bootstrap.Modal(modalEl);
-            modalInstance.show();
-        }
-
-
-
-
-        async function loadTaskDetails() {
-            if (!taskId) {
-                document.getElementById("task-title").innerText = "Ошибка!";
-                document.getElementById("task-description").innerText = "Задание не найдено.";
-                return;
-            }
-
-            try {
-                const response = await fetch(`${apiUrl}/tasks/${taskId}?telegram_id=${telegramId}`, {
-                    headers: { "ngrok-skip-browser-warning": "true" }
-                });
-
-                const task = await response.json();
-
-                document.getElementById("task-title").innerText = task.description;
-                document.getElementById("task-description").innerText = `Описание: ${task.description}`;
-                document.getElementById("task-reward").innerText = `💰 Вознаграждение: ${task.reward}`;
-                document.getElementById("task-status").innerText = `📌 Статус: ${task.status_id}`;
-
-                if (task.status_id === "active") {
-                    const btn = document.getElementById("accept-task-btn");
-                    btn.style.display = "block";
-                    btn.onclick = () => acceptTask(taskId);
-                }
-            } catch (error) {
-                console.error("Ошибка загрузки задания:", error);
-                document.getElementById("task-title").innerText = "Ошибка загрузки!";
-                document.getElementById("task-description").innerText = "Не удалось загрузить задание.";
-            }
-        }
-
-        // 📌 Инициализация
-        document.addEventListener("DOMContentLoaded", () => {
-            tg.expand();
-            loadAccountsToCache();
-            loadTaskDetails();
-        });
-    </script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      await loadAccountsToCache();
+      await loadTaskDetails();
+    });
+  </script>
 </body>
 </html>

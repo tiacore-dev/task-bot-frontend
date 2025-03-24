@@ -46,6 +46,9 @@
     </div>
 
     <script>
+        const tg = window.Telegram.WebApp;
+        const apiUrl = window.env.API_URL;
+        const telegramId = tg.initDataUnsafe?.user?.id;
         function logDebug(message) {
             console.log(message);
             document.getElementById("debug-log").innerText += `\n${message}`;
@@ -63,9 +66,18 @@
         }
 
         // 📌 Функция просмотра задания
-        function viewTask(taskId) {
-            window.location.href = `./task_details.html?task_id=${taskId}`;
+        function viewTask(taskId, isMy = false, assignmentId = null) {
+            const targetPage = isMy ? './my_task.html' : './task_details.html';
+            
+            if (assignmentId) {
+                localStorage.setItem("assignment_id", assignmentId);
+            } else {
+                localStorage.removeItem("assignment_id"); // если нет — убираем
+            }
+
+            window.location.href = `${targetPage}?task_id=${taskId}`;
         }
+
 
         document.addEventListener("DOMContentLoaded", async function () {
             const tg = window.Telegram.WebApp;
@@ -88,46 +100,51 @@
 
             // 📌 Загрузка заданий
             async function loadTasks(category, elementId) {
-                logDebug(`📌 Загружаем ${category} задания...`);
+                logDebug(`📌 Загружаем ${category || 'доступные'} задания...`);
                 const endpoint = `${apiUrl}/tasks/${category}?telegram_id=${telegramId}`;
 
                 try {
-                    const headers = {
-                        "Accept": "application/json",
-                        "ngrok-skip-browser-warning": "true"
-                    };
-
                     const response = await fetch(endpoint, {
-                        headers,
+                        headers: {
+                            "Accept": "application/json",
+                            "ngrok-skip-browser-warning": "true"
+                        },
                         mode: "cors",
                         cache: "no-store"
                     });
 
-                    logDebug(`📌 Статус ответа (${category}): ${response.status} ${response.statusText}`);
-
                     if (!response.ok) {
-                        logDebug(`❌ Ошибка запроса: ${response.status} ${response.statusText}`);
+                        logDebug(`❌ Ошибка загрузки ${category}: ${response.status}`);
                         return;
                     }
 
                     const tasks = await response.json();
-                    logDebug(`✅ Получены задания: ${JSON.stringify(tasks)}`);
+                    if (category === "my") {
+                        localStorage.setItem("my_tasks", JSON.stringify(tasks));
+                    }
 
                     const taskList = document.getElementById(elementId);
                     taskList.innerHTML = "";
 
                     tasks.forEach(task => {
                         const li = document.createElement("li");
+                        li.classList.add("list-group-item", "d-flex", "justify-content-between", "align-items-center");
+
+                        const isMyTask = category === "my" || category === "completed"; // где может быть assignment_id
+
+                        const assignmentArg = isMyTask && task.assignment_id ? `, '${task.assignment_id}'` : "";
+                        
                         li.innerHTML = `
-                            <b>${task.description}</b> - 💰 ${task.reward}
-                            <br>
-                            <button onclick="viewTask('${task.task_id}')">👀 Посмотреть</button>
+                            <span><b>${task.description}</b> – 💰 ${task.reward}</span>
+                            <button class="btn btn-sm btn-outline-primary" onclick="viewTask('${task.task_id}', ${isMyTask}${assignmentArg})">
+                                👀 Посмотреть
+                            </button>
                         `;
                         taskList.appendChild(li);
                     });
 
                 } catch (error) {
-                    logDebug(`❌ Ошибка загрузки ${category}: ${error}`);
+                    logDebug(`❌ Ошибка: ${error}`);
                 }
             }
 
@@ -137,16 +154,12 @@
                     const response = await fetch(`${apiUrl}/accounts?telegram_id=${telegramId}`, {
                         headers: { "Accept": "application/json", "ngrok-skip-browser-warning": "true" }
                     });
-
                     const accounts = await response.json();
-                    if (response.ok && accounts.length > 0) {
+                    if (response.ok) {
                         localStorage.setItem("user_accounts", JSON.stringify(accounts));
-                        logDebug("✅ Аккаунты сохранены в кеш: " + JSON.stringify(accounts));
-                    } else {
-                        logDebug("❌ У пользователя нет аккаунтов!");
                     }
-                } catch (error) {
-                    logDebug(`❌ Ошибка загрузки аккаунтов: ${error}`);
+                } catch (err) {
+                    console.log("Ошибка загрузки аккаунтов", err);
                 }
             }
 

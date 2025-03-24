@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Моё задание</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="./env.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h2 id="task-title">Загрузка задания...</h2>
+        <p id="task-description"></p>
+        <p id="task-reward"></p>
+
+        <div id="submission-form" style="display: none;">
+            <h4>📤 Отправка выполнения</h4>
+            <div class="mb-3">
+                <label for="screenshot" class="form-label">Скриншот выполнения</label>
+                <input type="file" id="screenshot" accept="image/*" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label for="comment" class="form-label">Комментарий</label>
+                <textarea id="comment" class="form-control" rows="3" placeholder="Опишите, что вы сделали..."></textarea>
+            </div>
+            <button class="btn btn-primary" onclick="submitTask()">📨 Отправить на проверку</button>
+        </div>
+
+        <button class="btn btn-secondary mt-3" onclick="goBack()">⬅ Назад</button>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        const apiUrl = window.env.API_URL;
+        const telegramId = tg.initDataUnsafe?.user?.id;
+        const urlParams = new URLSearchParams(window.location.search);
+        const taskId = urlParams.get("task_id");
+
+        function goBack() {
+            window.location.href = "/tasks.html";
+        }
+
+        async function loadTask() {
+            try {
+                const myTasks = JSON.parse(localStorage.getItem("my_tasks")) || [];
+                const task = myTasks.find(t => t.task_id === taskId);
+
+                if (!task) {
+                    document.getElementById("task-title").innerText = "Ошибка: задание не найдено";
+                    return;
+                }
+
+                document.getElementById("task-title").innerText = task.description;
+                document.getElementById("task-description").innerText = `Описание: ${task.description}`;
+                document.getElementById("task-reward").innerText = `💰 Вознаграждение: ${task.reward}`;
+
+                if (task.status_id === "assigned") {
+                    document.getElementById("submission-form").style.display = "block";
+                }
+            } catch (err) {
+                console.error("Ошибка загрузки задания:", err);
+            }
+        }
+
+        async function submitTask() {
+            const comment = document.getElementById("comment").value.trim();
+            const fileInput = document.getElementById("screenshot");
+            const file = fileInput.files[0];
+            const assignmentId = localStorage.getItem("assignment_id");
+
+            if (!assignmentId) {
+                alert("❌ Не найден ID назначения задания. Повторите попытку.");
+                return;
+            }
+
+            if (!file) {
+                alert("❌ Пожалуйста, прикрепите скриншот");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("screenshot", file); // передаём файл
+            formData.append("comment", comment);
+            formData.append("assignment_id", assignmentId);
+
+            try {
+                const response = await fetch(`${apiUrl}/tasks/${taskId}/submit?telegram_id=${telegramId}`, {
+                    method: "POST",
+                    body: formData,
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert("✅ Задание отправлено на проверку!");
+                    goBack();
+                } else {
+                    alert(`❌ Ошибка: ${result.error || 'Неизвестная ошибка'}`);
+                }
+            } catch (error) {
+                alert("❌ Ошибка при отправке задания: " + error);
+            }
+        }
+
+
+        document.addEventListener("DOMContentLoaded", () => {
+            tg.expand();
+            loadTask();
+        });
+    </script>
+</body>
+</html>
