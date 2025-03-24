@@ -67,7 +67,7 @@
 
         // 📌 Функция просмотра задания
         function viewTask(taskId, isMy = false, assignmentId = null) {
-            const targetPage = isMy ? './my_task.html' : './task_details.html';
+            const targetPage = isMy ? './my_tasks.html' : './task_details.html';
             
             if (assignmentId) {
                 localStorage.setItem("assignment_id", assignmentId);
