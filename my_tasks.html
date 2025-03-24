@@ -30,6 +30,9 @@
         <button class="btn btn-secondary mt-3" onclick="goBack()">⬅ Назад</button>
     </div>
 
+    <!-- 🔍 Отображение логов -->
+    <p id="debug-log" style="font-size: 12px; color: gray; white-space: pre-wrap;"></p>
+
     <script>
         const tg = window.Telegram.WebApp;
         const apiUrl = window.env.API_URL;
@@ -37,33 +40,53 @@
         const urlParams = new URLSearchParams(window.location.search);
         const taskId = urlParams.get("task_id");
 
+        function logDebug(message) {
+            console.log(message);
+            const logEl = document.getElementById("debug-log");
+            if (logEl) logEl.innerText += `\n${message}`;
+        }
+
         function goBack() {
             window.location.href = "/tasks.html";
         }
 
         async function loadTask() {
             try {
+                logDebug("📦 Загружаем задачу...");
+
                 const myTasks = JSON.parse(localStorage.getItem("my_tasks")) || [];
+                logDebug(`📁 Найдено ${myTasks.length} заданий в localStorage`);
+
                 const task = myTasks.find(t => t.task_id === taskId);
+                logDebug(`🔍 taskId из URL: ${taskId}`);
 
                 if (!task) {
+                    logDebug("❌ Задание не найдено");
                     document.getElementById("task-title").innerText = "Ошибка: задание не найдено";
                     return;
                 }
+
+                const assignmentId = localStorage.getItem("assignment_id");
+                logDebug(`📌 assignment_id из localStorage: ${assignmentId}`);
+
+                const response = await fetch(`${apiUrl}/assignments/${assignmentId}?telegram_id=${telegramId}`);
+                const data = await response.json();
+                logDebug(`📨 Ответ от /assignments: ${JSON.stringify(data)}`);
 
                 document.getElementById("task-title").innerText = task.description;
                 document.getElementById("task-description").innerText = `Описание: ${task.description}`;
                 document.getElementById("task-reward").innerText = `💰 Вознаграждение: ${task.reward}`;
 
-                const assignmentId = localStorage.getItem("assignment_id");
-                const response = await fetch(`${apiUrl}/assignments/${assignmentId}?telegram_id=${telegramId}`);
-                const data = await response.json();
-
                 if (data.assignment_status === "in_progress") {
+                    logDebug("✅ Статус: in_progress — показываем форму отправки");
                     document.getElementById("submission-form").style.display = "block";
+                } else {
+                    logDebug(`⛔ Статус: ${data.assignment_status} — форму не показываем`);
                 }
+
             } catch (err) {
                 console.error("Ошибка загрузки задания:", err);
+                logDebug(`❌ Ошибка загрузки: ${err}`);
             }
         }
 
@@ -75,16 +98,23 @@
 
             if (!assignmentId) {
                 alert("❌ Не найден ID назначения задания. Повторите попытку.");
+                logDebug("❌ assignment_id не найден в localStorage");
                 return;
             }
 
             if (!file) {
                 alert("❌ Пожалуйста, прикрепите скриншот");
+                logDebug("❌ Скриншот не прикреплён");
                 return;
             }
 
+            logDebug("🚀 Отправляем задание на проверку...");
+            logDebug(`📎 Комментарий: ${comment}`);
+            logDebug(`🖼 Файл: ${file.name}, размер: ${file.size} байт`);
+            logDebug(`📌 assignment_id: ${assignmentId}`);
+
             const formData = new FormData();
-            formData.append("screenshot", file); // передаём файл
+            formData.append("screenshot", file);
             formData.append("comment", comment);
             formData.append("assignment_id", assignmentId);
 
@@ -95,6 +125,7 @@
                 });
 
                 const result = await response.json();
+                logDebug(`📬 Ответ от submit: ${JSON.stringify(result)}`);
 
                 if (response.ok) {
                     alert("✅ Задание отправлено на проверку!");
@@ -103,10 +134,10 @@
                     alert(`❌ Ошибка: ${result.error || 'Неизвестная ошибка'}`);
                 }
             } catch (error) {
+                logDebug(`❌ Ошибка отправки: ${error}`);
                 alert("❌ Ошибка при отправке задания: " + error);
             }
         }
-
 
         document.addEventListener("DOMContentLoaded", () => {
             tg.expand();
