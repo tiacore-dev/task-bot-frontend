@@ -55,7 +55,11 @@
                 document.getElementById("task-description").innerText = `Описание: ${task.description}`;
                 document.getElementById("task-reward").innerText = `💰 Вознаграждение: ${task.reward}`;
 
-                if (task.status_id === "assigned") {
+                const assignmentId = localStorage.getItem("assignment_id");
+                const response = await fetch(`${apiUrl}/assignments/${assignmentId}?telegram_id=${telegramId}`);
+                const data = await response.json();
+
+                if (data.assignment_status === "in_progress") {
                     document.getElementById("submission-form").style.display = "block";
                 }
             } catch (err) {
