@@ -69,7 +69,14 @@
                 const assignmentId = localStorage.getItem("assignment_id");
                 logDebug(`📌 assignment_id из localStorage: ${assignmentId}`);
 
-                const response = await fetch(`${apiUrl}/assignments/${assignmentId}?telegram_id=${telegramId}`);
+                const response = await fetch(`${apiUrl}/assignments/${assignmentId}?telegram_id=${telegramId}`, {
+                        headers: {
+                            "Accept": "application/json",
+                            "ngrok-skip-browser-warning": "true"
+                        },
+                        mode: "cors",
+                        cache: "no-store"
+                    });
                 const data = await response.json();
                 logDebug(`📨 Ответ от /assignments: ${JSON.stringify(data)}`);
 
@@ -122,7 +129,11 @@
                 const response = await fetch(`${apiUrl}/tasks/${taskId}/submit?telegram_id=${telegramId}`, {
                     method: "POST",
                     body: formData,
+                    headers: {
+                        "ngrok-skip-browser-warning": "true"
+                    }
                 });
+
 
                 const result = await response.json();
                 logDebug(`📬 Ответ от submit: ${JSON.stringify(result)}`);
